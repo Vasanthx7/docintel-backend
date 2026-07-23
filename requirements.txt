@@ -1,0 +1,27 @@
+# Web / API
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# Database
+sqlalchemy==2.0.36
+psycopg[binary]==3.2.3
+
+# Async tasks
+celery==5.4.0
+redis==5.2.1
+
+# Vector DB
+qdrant-client==1.12.1
+
+# LLM (Ollama's OpenAI-compatible API)
+openai==1.59.6
+
+# Embeddings + reranker (BGE-M3, bge-reranker-v2-m3). Pulls in torch (CPU).
+FlagEmbedding==1.3.3
+
+# Document parsing (layout-aware, with PyMuPDF fallback)
+docling==2.15.1
+PyMuPDF==1.25.1

@@ -1,0 +1,75 @@
+name: docintel   # pin the project name (Compose otherwise derives it from the dir, now `backend`)
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: docintel
+    ports:
+      - "5433:5432"   # host 5433 (5432 often taken by a local Postgres); app uses the internal 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrantdata:/qdrant/storage
+
+  api:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    volumes:
+      - ./app:/app/app        # hot-reload-friendly during dev
+      - uploads:/app/data/uploads
+      - models:/models                 # HuggingFace weight cache
+    # Ollama runs on the host; reach it via host.docker.internal.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build: .
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    volumes:
+      - ./app:/app/app
+      - uploads:/app/data/uploads
+      - models:/models
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: celery -A app.celery_app.celery_app worker --loglevel=info --concurrency=1
+
+volumes:
+  pgdata:
+  qdrantdata:
+  uploads:
+  models:
